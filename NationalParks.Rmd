@@ -1,0 +1,45 @@
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## January 13, 2021
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+library(leaflet)
+library(sf)
+library(sfheaders)
+
+# let's get the locations of all national parks.
+# This URL came from Wikipedia page of list of national parks (https://en.wikipedia.org/wiki/List_of_national_parks_of_the_United_States)
+nationalParksUrl <- "https://tools.wmflabs.org/kmlexport?article=List_of_national_parks_of_the_United_States"
+nationalParksFile <- "nationalParks.kml"
+download.file(url = nationalParksUrl, destfile = nationalParksFile)
+parkList <- read_sf("nationalParks.kml")
+coordinates <- parkList$geometry
+
+numCoordinates <- length(coordinates)
+# Put latitude and longitude from coordinates into their own columns
+for(index in 1:numCoordinates) {
+    parkList$Lat[index] <- as_Spatial(coordinates[index])@coords[2]
+}
+for(index in 1:numCoordinates) {
+    parkList$Lon[index] <- as_Spatial(coordinates[index])@coords[1]
+}
+
+parksIcon <- makeIcon(
+    iconUrl = "https://www.nps.gov/common/commonspot/templates/images/icons/favicon.ico",
+    iconWidth = 31*215/230,
+    iconHeight = 31,
+    iconAnchorX = 31*215/230/2,
+    iconAnchorY = 16)
+
+# create data frame to be used for leaflet
+parks <- data.frame(lat = parkList$Lat, lng = parkList$Lon, labels = parkList$Name)
+
+map <- leaflet(parks) %>%
+        addTiles() %>%
+        addMarkers(popup=~labels, icon = parksIcon)
+
+map
+```
